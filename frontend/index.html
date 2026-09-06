@@ -3,11 +3,480 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Safiri Port Pulse</title>
+  <title>Safiri PortPulse — Port Operations Intelligence</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Safiri Port Pulse</h1>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PERSISTENT HEADER
+  ═══════════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-safiri">SAFIRI</span><span class="brand-port">PORTPULSE</span>
+        <span class="brand-sub">Port Operations Intelligence</span>
+      </div>
+      <div class="api-status" id="apiStatus">
+        <span class="api-dot" id="apiDot"></span>
+        <span class="api-label" id="apiLabel">CONNECTING</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCREEN: HOME / COMMAND CENTER
+  ═══════════════════════════════════════════════════════════════════ -->
+  <main id="screenHome" class="screen screen-home active">
+    <div class="home-inner">
+
+      <div class="home-headline">
+        <h1>Port Status Overview</h1>
+        <p class="home-desc">How is the port looking right now? Select a scenario to begin, or configure conditions manually.</p>
+      </div>
+
+      <!-- Operational snapshot cards -->
+      <div class="snapshot-grid" id="snapshotGrid">
+        <div class="snap-card">
+          <div class="snap-icon">⚓</div>
+          <div class="snap-label">BERTHS</div>
+          <div class="snap-values">
+            <span class="snap-main" id="snap-berths">—</span>
+            <span class="snap-detail" id="snap-berths-detail">total / available</span>
+          </div>
+        </div>
+        <div class="snap-card">
+          <div class="snap-icon">🚢</div>
+          <div class="snap-label">VESSEL TRAFFIC</div>
+          <div class="snap-values">
+            <span class="snap-main" id="snap-vessels">—</span>
+            <span class="snap-detail" id="snap-vessels-detail">in port / anchored / approaching</span>
+          </div>
+        </div>
+        <div class="snap-card">
+          <div class="snap-icon">⏱</div>
+          <div class="snap-label">QUEUE</div>
+          <div class="snap-values">
+            <span class="snap-main" id="snap-queue">—</span>
+            <span class="snap-detail" id="snap-queue-detail">vessels / avg wait</span>
+          </div>
+        </div>
+        <div class="snap-card">
+          <div class="snap-icon">🏗</div>
+          <div class="snap-label">OPERATIONS</div>
+          <div class="snap-values">
+            <span class="snap-main" id="snap-ops">—</span>
+            <span class="snap-detail" id="snap-ops-detail">crane util / labour</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick scenarios -->
+      <div class="scenario-bar">
+        <span class="scenario-label">Quick scenarios</span>
+        <div class="scenario-btns">
+          <button class="btn-scenario btn-scenario--normal" id="scenarioNormal">
+            <span class="scenario-dot dot-normal"></span> NORMAL
+          </button>
+          <button class="btn-scenario btn-scenario--busy" id="scenarioBusy">
+            <span class="scenario-dot dot-busy"></span> BUSY PORT
+          </button>
+          <button class="btn-scenario btn-scenario--critical" id="scenarioCritical">
+            <span class="scenario-dot dot-critical"></span> CRITICAL
+          </button>
+        </div>
+      </div>
+
+      <!-- Primary CTA -->
+      <div class="home-cta">
+        <button class="btn-primary" id="btnBeginAssessment">
+          ASSESS PORT RISK <span class="btn-arrow">→</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCREEN: ASSESSMENT (3 steps)
+  ═══════════════════════════════════════════════════════════════════ -->
+  <main id="screenAssessment" class="screen screen-assessment">
+    <div class="assess-inner">
+
+      <!-- Step progress -->
+      <nav class="step-nav" aria-label="Assessment steps">
+        <div class="step-item" data-step="1" id="stepNav1">
+          <span class="step-num">01</span>
+          <span class="step-name">OPERATIONS</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item" data-step="2" id="stepNav2">
+          <span class="step-num">02</span>
+          <span class="step-name">TRAFFIC</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item" data-step="3" id="stepNav3">
+          <span class="step-num">03</span>
+          <span class="step-name">CONDITIONS</span>
+        </div>
+      </nav>
+
+      <!-- Error banner (validation / API errors) -->
+      <div class="error-bar" id="errorBar" hidden>
+        <span class="error-bar-icon">!</span>
+        <span class="error-bar-text" id="errorBarText"></span>
+        <button class="error-bar-close" id="errorBarClose" aria-label="Dismiss">×</button>
+      </div>
+
+      <!-- ── STEP 1: CURRENT OPERATIONS ── -->
+      <section id="stepPanel1" class="step-panel active">
+        <div class="step-header">
+          <h2>Current Operations</h2>
+          <p>Enter berth capacity, vessel count, and queue status as of right now.</p>
+        </div>
+
+        <div class="form-columns">
+
+          <div class="form-group">
+            <h3 class="group-title">Berth Capacity</h3>
+            <div class="field-row">
+              <label for="total_berths">Total Berths</label>
+              <input type="number" id="total_berths" min="1" max="50" step="1" aria-describedby="err_total_berths" />
+              <span class="field-err" id="err_total_berths"></span>
+            </div>
+            <div class="field-row">
+              <label for="available_berths">Available Berths</label>
+              <input type="number" id="available_berths" min="0" max="50" step="1" aria-describedby="err_available_berths" />
+              <span class="field-err" id="err_available_berths"></span>
+            </div>
+            <div class="field-row">
+              <label for="berth_utilization">
+                Berth Utilization
+                <span class="field-hint">0 – 1</span>
+              </label>
+              <input type="number" id="berth_utilization" min="0" max="1" step="0.01" aria-describedby="err_berth_utilization" />
+              <span class="field-err" id="err_berth_utilization"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <h3 class="group-title">Vessel Traffic</h3>
+            <div class="field-row">
+              <label for="vessels_currently_in_port">Vessels in Port</label>
+              <input type="number" id="vessels_currently_in_port" min="0" max="200" step="1" aria-describedby="err_vessels_currently_in_port" />
+              <span class="field-err" id="err_vessels_currently_in_port"></span>
+            </div>
+            <div class="field-row">
+              <label for="vessels_anchored">Vessels Anchored</label>
+              <input type="number" id="vessels_anchored" min="0" max="200" step="1" aria-describedby="err_vessels_anchored" />
+              <span class="field-err" id="err_vessels_anchored"></span>
+            </div>
+            <div class="field-row">
+              <label for="vessels_approaching">Vessels Approaching</label>
+              <input type="number" id="vessels_approaching" min="0" max="100" step="1" aria-describedby="err_vessels_approaching" />
+              <span class="field-err" id="err_vessels_approaching"></span>
+            </div>
+          </div>
+
+          <div class="form-group form-group--wide">
+            <h3 class="group-title">Queue Status</h3>
+            <div class="field-row">
+              <label for="queue_length">Queue Length <span class="field-hint">vessels waiting</span></label>
+              <input type="number" id="queue_length" min="0" max="200" step="0.1" aria-describedby="err_queue_length" />
+              <span class="field-err" id="err_queue_length"></span>
+            </div>
+            <div class="field-row">
+              <label for="avg_waiting_time_hours">Avg Waiting Time <span class="field-hint">hours</span></label>
+              <input type="number" id="avg_waiting_time_hours" min="0" max="100" step="0.1" aria-describedby="err_avg_waiting_time_hours" />
+              <span class="field-err" id="err_avg_waiting_time_hours"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="step-actions">
+          <button class="btn-ghost" id="step1Back">← Back to Overview</button>
+          <button class="btn-primary" id="step1Next">NEXT <span class="btn-arrow">→</span></button>
+        </div>
+      </section>
+
+      <!-- ── STEP 2: TRAFFIC & RESOURCES ── -->
+      <section id="stepPanel2" class="step-panel">
+        <div class="step-header">
+          <h2>Traffic &amp; Resources</h2>
+          <p>Arrival patterns and equipment readiness over the past 24 hours.</p>
+        </div>
+
+        <div class="form-columns">
+
+          <div class="form-group">
+            <h3 class="group-title">Arrivals</h3>
+            <div class="field-row">
+              <label for="arrivals_last_1h">Last 1 Hour</label>
+              <input type="number" id="arrivals_last_1h" min="0" max="50" step="1" aria-describedby="err_arrivals_last_1h" />
+              <span class="field-err" id="err_arrivals_last_1h"></span>
+            </div>
+            <div class="field-row">
+              <label for="arrivals_last_6h">Last 6 Hours</label>
+              <input type="number" id="arrivals_last_6h" min="0" max="200" step="1" aria-describedby="err_arrivals_last_6h" />
+              <span class="field-err" id="err_arrivals_last_6h"></span>
+            </div>
+            <div class="field-row">
+              <label for="arrivals_last_24h">Last 24 Hours</label>
+              <input type="number" id="arrivals_last_24h" min="0" max="500" step="1" aria-describedby="err_arrivals_last_24h" />
+              <span class="field-err" id="err_arrivals_last_24h"></span>
+            </div>
+            <div class="field-row">
+              <label for="arrival_rate">Arrival Rate <span class="field-hint">vessels/hr</span></label>
+              <input type="number" id="arrival_rate" min="0" max="50" step="0.01" aria-describedby="err_arrival_rate" />
+              <span class="field-err" id="err_arrival_rate"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <h3 class="group-title">Equipment</h3>
+            <div class="field-row">
+              <label for="cranes_operational">Operational Cranes</label>
+              <input type="number" id="cranes_operational" min="0" max="50" step="1" aria-describedby="err_cranes_operational" />
+              <span class="field-err" id="err_cranes_operational"></span>
+            </div>
+            <div class="field-row">
+              <label for="crane_utilization">Crane Utilization <span class="field-hint">0 – 1</span></label>
+              <input type="number" id="crane_utilization" min="0" max="1" step="0.01" aria-describedby="err_crane_utilization" />
+              <span class="field-err" id="err_crane_utilization"></span>
+            </div>
+            <div class="field-row">
+              <label for="equipment_failure_count">Equipment Failures <span class="field-hint">current shift</span></label>
+              <input type="number" id="equipment_failure_count" min="0" max="20" step="1" aria-describedby="err_equipment_failure_count" />
+              <span class="field-err" id="err_equipment_failure_count"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <h3 class="group-title">Labour</h3>
+            <div class="field-row">
+              <label for="labor_availability_pct">Labour Availability <span class="field-hint">0 – 1</span></label>
+              <input type="number" id="labor_availability_pct" min="0" max="1" step="0.01" aria-describedby="err_labor_availability_pct" />
+              <span class="field-err" id="err_labor_availability_pct"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="step-actions">
+          <button class="btn-ghost" id="step2Back">← Back</button>
+          <button class="btn-primary" id="step2Next">NEXT <span class="btn-arrow">→</span></button>
+        </div>
+      </section>
+
+      <!-- ── STEP 3: CONDITIONS & CONTEXT ── -->
+      <section id="stepPanel3" class="step-panel">
+        <div class="step-header">
+          <h2>Conditions &amp; Context</h2>
+          <p>Environmental, temporal, and port-profile context for this assessment.</p>
+        </div>
+
+        <div class="form-columns">
+
+          <div class="form-group">
+            <h3 class="group-title">Weather</h3>
+            <div class="field-row">
+              <label for="weather_severity">Weather Severity <span class="field-hint">0 – 1</span></label>
+              <input type="number" id="weather_severity" min="0" max="1" step="0.01" aria-describedby="err_weather_severity" />
+              <span class="field-err" id="err_weather_severity"></span>
+            </div>
+            <div class="field-row field-row--check">
+              <label class="check-label" for="storm_flag">
+                <input type="checkbox" id="storm_flag" />
+                <span class="check-box"></span>
+                Storm Warning Active
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <h3 class="group-title">Temporal</h3>
+            <div class="field-row">
+              <label for="hour">Hour of Day <span class="field-hint">0 – 23</span></label>
+              <input type="number" id="hour" min="0" max="23" step="1" aria-describedby="err_hour" />
+              <span class="field-err" id="err_hour"></span>
+            </div>
+            <div class="field-row">
+              <label for="day_of_week">Day of Week <span class="field-hint">0 Mon – 6 Sun</span></label>
+              <input type="number" id="day_of_week" min="0" max="6" step="1" aria-describedby="err_day_of_week" />
+              <span class="field-err" id="err_day_of_week"></span>
+            </div>
+            <div class="field-row field-row--readonly">
+              <span class="readonly-label">Weekend</span>
+              <span class="readonly-value" id="weekendDisplay">No</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <h3 class="group-title">Historical Context</h3>
+            <div class="field-row">
+              <label for="historical_avg_wait_time">Avg Wait Time <span class="field-hint">historical, hours</span></label>
+              <input type="number" id="historical_avg_wait_time" min="0" max="100" step="0.01" aria-describedby="err_historical_avg_wait_time" />
+              <span class="field-err" id="err_historical_avg_wait_time"></span>
+            </div>
+            <div class="field-row">
+              <label for="historical_congestion_rate">Congestion Rate <span class="field-hint">historical, 0 – 1</span></label>
+              <input type="number" id="historical_congestion_rate" min="0" max="1" step="0.01" aria-describedby="err_historical_congestion_rate" />
+              <span class="field-err" id="err_historical_congestion_rate"></span>
+            </div>
+          </div>
+
+          <div class="form-group form-group--profile">
+            <h3 class="group-title">
+              Port Profile
+              <span class="upstream-badge">UPSTREAM SYSTEM</span>
+            </h3>
+            <p class="group-note">Supplied by the port management system.</p>
+            <div class="field-row">
+              <label for="traffic_pressure">Traffic Pressure</label>
+              <input type="number" id="traffic_pressure" min="0" max="10" step="0.01" aria-describedby="err_traffic_pressure" />
+              <span class="field-err" id="err_traffic_pressure"></span>
+            </div>
+            <div class="field-row">
+              <label for="traffic_weather_interaction">Traffic × Weather</label>
+              <input type="number" id="traffic_weather_interaction" min="0" max="10" step="0.01" aria-describedby="err_traffic_weather_interaction" />
+              <span class="field-err" id="err_traffic_weather_interaction"></span>
+            </div>
+            <div class="field-row">
+              <label for="vessel_type">Vessel Type</label>
+              <select id="vessel_type" aria-describedby="err_vessel_type">
+                <option value="">Select…</option>
+                <option value="bulk">Bulk</option>
+                <option value="container">Container</option>
+                <option value="general_cargo">General Cargo</option>
+                <option value="tanker">Tanker</option>
+              </select>
+              <span class="field-err" id="err_vessel_type"></span>
+            </div>
+            <div class="field-row">
+              <label for="cargo_type">Cargo Type</label>
+              <select id="cargo_type" aria-describedby="err_cargo_type">
+                <option value="">Select…</option>
+                <option value="containerized">Containerized</option>
+                <option value="dry_bulk">Dry Bulk</option>
+                <option value="general">General</option>
+                <option value="liquid_bulk">Liquid Bulk</option>
+              </select>
+              <span class="field-err" id="err_cargo_type"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="step-actions">
+          <button class="btn-ghost" id="step3Back">← Back</button>
+          <button class="btn-primary" id="btnAssess">
+            <span id="assessBtnText">ASSESS PORT RISK</span>
+            <span class="btn-arrow" id="assessBtnArrow">→</span>
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SCREEN: RESULTS / ASSESSMENT
+  ═══════════════════════════════════════════════════════════════════ -->
+  <main id="screenResults" class="screen screen-results" aria-live="polite">
+    <div class="results-inner">
+
+      <!-- Results header -->
+      <div class="results-header">
+        <div class="results-title-block">
+          <div class="results-eyebrow">PORT RISK ASSESSMENT</div>
+          <h2 class="results-timestamp" id="resultsTimestamp"></h2>
+        </div>
+        <div class="results-header-actions">
+          <button class="btn-ghost" id="btnModifyTop">← Modify Conditions</button>
+          <button class="btn-ghost-outline" id="btnNewTop">New Assessment</button>
+        </div>
+      </div>
+
+      <!-- ── HERO METRICS ── -->
+      <div class="hero-metrics">
+
+        <!-- Risk ring -->
+        <div class="risk-hero" id="riskHero">
+          <div class="risk-ring-wrap">
+            <svg class="risk-ring" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-track" cx="60" cy="60" r="50" />
+              <circle class="ring-fill" id="ringSvg" cx="60" cy="60" r="50"
+                stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+            </svg>
+            <div class="ring-inner">
+              <div class="ring-pct" id="ringPct">—</div>
+              <div class="ring-sublabel">CONGESTION</div>
+            </div>
+          </div>
+          <div class="risk-badge" id="riskBadge">—</div>
+        </div>
+
+        <!-- Delay card -->
+        <div class="delay-hero">
+          <div class="delay-label">EXPECTED DELAY</div>
+          <div class="delay-value" id="delayValue">—</div>
+          <div class="delay-unit">HOURS</div>
+        </div>
+
+      </div>
+
+      <!-- ── ESCALATION (conditional) ── -->
+      <div class="escalation-block" id="escalationBlock" hidden>
+        <div class="escalation-header">⚠ ESCALATION TRIGGERS</div>
+        <ul class="escalation-list" id="escalationList"></ul>
+      </div>
+
+      <!-- ── WHY ── -->
+      <div class="result-section">
+        <h3 class="section-heading">Why This Prediction?</h3>
+        <div class="reason-block" id="reasonBlock"></div>
+      </div>
+
+      <!-- ── SHAP FACTORS ── -->
+      <div class="factors-row" id="factorsRow">
+        <div class="factor-col">
+          <h3 class="section-heading section-heading--risk">Risk-Increasing Factors</h3>
+          <div class="factor-list" id="riskFactorList"></div>
+        </div>
+        <div class="factor-col">
+          <h3 class="section-heading section-heading--protect">Protective Factors</h3>
+          <div class="factor-list" id="protectFactorList"></div>
+        </div>
+      </div>
+      <div class="shap-unavailable" id="shapUnavailable" hidden>
+        Detailed factor breakdown is not available for this prediction.
+      </div>
+
+      <!-- ── RECOMMENDED RESPONSE ── -->
+      <div class="result-section">
+        <h3 class="section-heading">Recommended Response</h3>
+        <ol class="action-list" id="actionList"></ol>
+
+        <!-- Human-in-the-loop callout -->
+        <div class="hitl-callout">
+          <div class="hitl-icon" aria-hidden="true">👤</div>
+          <div class="hitl-body">
+            <div class="hitl-title">HUMAN DECISION REQUIRED</div>
+            <div class="hitl-text">PortPulse provides decision support. Final operational decisions remain with authorized staff.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="results-footer-nav">
+        <button class="btn-ghost" id="btnModifyBottom">← Modify Conditions</button>
+        <button class="btn-ghost-outline" id="btnNewBottom">New Assessment</button>
+      </div>
+
+    </div>
+  </main>
+
   <script src="app.js"></script>
 </body>
 </html>

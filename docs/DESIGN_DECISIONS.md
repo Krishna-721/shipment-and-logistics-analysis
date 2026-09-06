@@ -109,3 +109,44 @@
 **Decision:** Treat Safiri PortPulse as a decision-support system rather than an autonomous decision-maker.
 
 **Reason:** Predictions and recommendations should assist an operator while leaving the final operational decision to a human.
+
+---
+
+## 15 - Temporal Train/Test Split
+
+**Decision:** Split the dataset chronologically — training on the first 8 days (2026-01-01 to 2026-01-08) and evaluating on the final 2.1 days (2026-01-09 to 2026-01-11).
+
+**Reason:** Randomly shuffling a time-series dataset would allow future information to leak into the training set via observations that are temporally adjacent. A strict chronological cut preserves the direction of causality and better approximates a real deployment scenario where the model is trained on historical data and evaluated on unseen future observations.
+
+**Known distributional shift:** Congestion rate rises from 20.6 % in training to 45.2 % in the test set, reflecting queue build-up over the simulation window. This shift is documented rather than masked. All three ML models maintain F1 ≥ 0.942 and ROC-AUC ≥ 0.993 despite this shift.
+
+---
+
+## 16 - Queue-Only Baseline Before Any ML
+
+**Decision:** Implement and evaluate a simple operational rule (queue > 50 % of berths → predict congestion) as a formal baseline, evaluated on the same test set as all ML models.
+
+**Reason:** The final dataset audit found a Pearson correlation of 0.861 between queue pressure and the congestion label. A single-feature threshold achieves 85 % accuracy on the full dataset. Any ML model that does not clearly exceed this baseline would provide no operational value and should not be deployed. The baseline makes the ML value proposition explicit and testable.
+
+---
+
+## 17 - Logistic Regression as Selected Model
+
+**Decision:** Select Logistic Regression as the primary model for the congestion prediction pipeline.
+
+**Reason:** Logistic Regression achieved the best performance across the test set:
+- Highest F1 (0.965), Accuracy (0.968), Precision (0.974), ROC-AUC (0.996), PR-AUC (0.996), Brier Score (0.025).
+- Simplest model in the comparison — trains in under 0.05 seconds.
+- Best probability calibration (Brier 0.025), essential for using its output as an operational risk score.
+- Coefficients are directly interpretable and compatible with SHAP.
+- Precision improvement over the queue rule (+0.174) reduces false operational alerts from 20 % to 2 % — the most important operational metric.
+
+XGBoost is functionally equivalent (F1 0.961, ROC-AUC 0.996) and could be substituted if SHAP interaction values become the priority. Random Forest underperforms both alternatives.
+
+---
+
+## 18 - Acknowledge Nowcasting Limitation
+
+**Decision:** Explicitly document that the system primarily performs congestion persistence detection ("nowcasting") rather than early-warning forecasting, and not claim early-warning capability that is not supported by the data.
+
+**Reason:** The dataset audit established that only 2 of 4,880 valid rows show low current queue leading to future congestion. The congestion label is strongly driven by current operational state. The system is valuable for reducing false alarms and providing calibrated risk probabilities, but should not be described as detecting congestion risk before any operational stress is visible. This limitation is consistent with the 3-day proof-of-concept scope.
