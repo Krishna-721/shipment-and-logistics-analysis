@@ -4,7 +4,7 @@
 // Plain vanilla JS — no frameworks, no dependencies.
 // ============================================================================
 
-const API_BASE = "http://127.0.0.1:8765";
+const API_BASE = "http://127.0.0.1:8000";
 
 // ── Application state ────────────────────────────────────────────────────────
 // Holds the current form values across all 3 steps.

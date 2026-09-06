@@ -1,19 +1,63 @@
-# Safiri PortPulse Dependencies
+# ============================================================================
+# Safiri PortPulse — Python dependencies
+# Python >= 3.11 required
+#
+# Install all dependencies:
+#   pip install -r requirements.txt
+#
+# Then run the project (from repo root):
+#   python scripts/generate_data.py      # generate synthetic dataset
+#   python scripts/train.py              # train congestion model
+#   python scripts/train_delay.py        # train delay model
+#   uvicorn backend.main:app --host 127.0.0.1 --port 8765
+#   python -m http.server 8000 --directory frontend
+# ============================================================================
 
-# Core data science
-pandas>=2.0.0
-numpy>=1.24.0
+# ── API server ───────────────────────────────────────────────────────────────
+# FastAPI 0.115+ for lifespan context manager and response_model_exclude support
+fastapi>=0.115.0,<1.0.0
+# Uvicorn is the ASGI server that runs FastAPI
+uvicorn>=0.32.0,<1.0.0
+# Pydantic v2 required — v1 is API-incompatible with this codebase
+pydantic>=2.0.0,<3.0.0
+# Starlette is FastAPI's ASGI foundation; installed transitively but pinned
+# to avoid silent incompatibilities with fastapi's tested version range
+starlette>=0.37.0,<1.0.0
+# python-multipart is required by FastAPI at import time for any form support
+python-multipart>=0.0.9
 
-# Machine Learning
-scikit-learn>=1.3.0
-xgboost>=1.7.0
+# ── Data science ─────────────────────────────────────────────────────────────
+pandas>=2.0.0,<4.0.0
+numpy>=1.24.0,<3.0.0
+scikit-learn>=1.3.0,<2.0.0
+scipy>=1.10.0,<2.0.0
 
-# Visualization
+# ── Model persistence ────────────────────────────────────────────────────────
+joblib>=1.3.0
+
+# ── Explainability ───────────────────────────────────────────────────────────
+# SHAP LinearExplainer is used for LR and Ridge models
+shap>=0.44.0
+
+# ── Visualisation ────────────────────────────────────────────────────────────
+# Used in analysis/experiment scripts (scripts/explain.py, evaluate.py, etc.)
 matplotlib>=3.7.0
 seaborn>=0.12.0
 
-# Model persistence
-joblib>=1.3.0
+# ── Optional: XGBoost ────────────────────────────────────────────────────────
+# train.py and train_delay.py train an XGBoost model if available.
+# The API, core models, and tests all work without it.
+# Install if you want the full model comparison:
+#   pip install xgboost>=2.0.0
+# xgboost>=2.0.0
 
-# Development
+# ── Testing ──────────────────────────────────────────────────────────────────
+# httpx provides the ASGI TestClient used in test_api.py and integration tests
+httpx>=0.25.0,<1.0.0
 pytest>=7.4.0
+# asyncio mode=strict is set in pyproject.toml; requires pytest-asyncio
+pytest-asyncio>=0.23.0
+# pytest-env injects environment variables declared in pyproject.toml
+pytest-env>=1.1.0
+# anyio is the async backend used by httpx and pytest-asyncio
+anyio>=4.0.0,<5.0.0
