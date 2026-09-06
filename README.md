@@ -454,7 +454,7 @@ safiri-port-pulse/
 │   └── raw/
 │       └── port_operations.csv
 │
-├── docs/                 # Design, assumptions and experiment documentation
+├── docs/                 # Design, assumptions, audits and experiment documentation
 │
 ├── frontend/
 │   ├── index.html
