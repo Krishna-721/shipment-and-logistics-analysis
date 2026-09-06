@@ -332,7 +332,7 @@ http://127.0.0.1:8000
 Run:
 
 ```text
-python -m http.server 8000 --directory frontend
+python -m http.server 5500 --directory frontend --bind 127.0.0.1
 ```
 
 and the browser opens while the API is running.
